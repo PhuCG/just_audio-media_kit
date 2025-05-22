@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart' hide PlayerState;
 import 'package:media_kit/media_kit.dart';
+import 'package:audioplayers/audioplayers.dart' as audio_players;
 
 // Sample audio URLs for testing
 final sampleUrls = [
@@ -52,3 +53,16 @@ final justAudioProcessingStateProvider =
 // Provider for Media Kit processing state
 final mediaKitProcessingStateProvider =
     StateProvider<PlayerState?>((ref) => null);
+
+// Provider for AudioPlayers loading time
+final audioPlayersLoadingTimeProvider =
+    StateProvider<String>((ref) => 'Not started');
+
+// AudioPlayers Provider
+final audioPlayersProvider = Provider<audio_players.AudioPlayer>((ref) {
+  final player = audio_players.AudioPlayer();
+  ref.onDispose(() {
+    player.dispose();
+  });
+  return player;
+});

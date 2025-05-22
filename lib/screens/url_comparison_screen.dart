@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:audioplayers/audioplayers.dart' as audio_players;
 import '../providers/audio_providers.dart';
 
 class UrlComparisonScreen extends ConsumerStatefulWidget {
@@ -19,12 +20,14 @@ class UrlComparisonScreen extends ConsumerStatefulWidget {
 class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
   DateTime? justAudioStartTime;
   DateTime? mediaKitStartTime;
+  DateTime? audioPlayersStartTime;
 
   @override
   void initState() {
     super.initState();
     _setupJustAudioListener();
     _setupMediaKitListener();
+    _setupAudioPlayersListener();
   }
 
   void _setupJustAudioListener() {
@@ -86,12 +89,27 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
     });
   }
 
+  void _setupAudioPlayersListener() {
+    final player = ref.read(audioPlayersProvider);
+
+    player.onPlayerStateChanged.listen((state) {
+      if (state == audio_players.PlayerState.playing &&
+          audioPlayersStartTime != null) {
+        final duration = DateTime.now().difference(audioPlayersStartTime!);
+        ref.read(audioPlayersLoadingTimeProvider.notifier).state =
+            'Loaded in ${duration.inMilliseconds}ms';
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final justAudioPlayer = ref.watch(justAudioPlayerProvider);
     final mediaKitPlayer = ref.watch(mediaKitPlayerProvider);
+    final audioPlayers = ref.watch(audioPlayersProvider);
     final justAudioLoadingTime = ref.watch(justAudioLoadingTimeProvider);
     final mediaKitLoadingTime = ref.watch(mediaKitLoadingTimeProvider);
+    final audioPlayersLoadingTime = ref.watch(audioPlayersLoadingTimeProvider);
     final justAudioState = ref.watch(justAudioProcessingStateProvider);
 
     return Scaffold(
@@ -180,6 +198,51 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
                                   .state = 'Loading...';
                               await mediaKitPlayer.open(Media(url));
                               mediaKitPlayer.play();
+                            },
+                          );
+                        },
+                      ).toList(),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // AudioPlayers Section
+          Expanded(
+            child: Card(
+              margin: const EdgeInsets.all(8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'AudioPlayers',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Loading Time: $audioPlayersLoadingTime',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      children: sampleUrls.map(
+                        (url) {
+                          return IconButton(
+                            icon: const Icon(Icons.play_arrow),
+                            onPressed: () async {
+                              audioPlayersStartTime = DateTime.now();
+                              ref
+                                  .read(
+                                      audioPlayersLoadingTimeProvider.notifier)
+                                  .state = 'Loading...';
+                              await audioPlayers
+                                  .play(audio_players.UrlSource(url));
                             },
                           );
                         },
