@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:audioplayers/audioplayers.dart' as audio_players;
 import '../providers/audio_providers.dart';
 
@@ -22,6 +20,12 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
   DateTime? mediaKitStartTime;
   DateTime? audioPlayersStartTime;
 
+  // Stream subscriptions
+  StreamSubscription<ProcessingState>? _justAudioStateSubscription;
+  StreamSubscription<bool>? _mediaKitPlayingSubscription;
+  StreamSubscription<String>? _mediaKitErrorSubscription;
+  StreamSubscription<audio_players.PlayerState>? _audioPlayersStateSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -30,13 +34,22 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
     _setupAudioPlayersListener();
   }
 
+  @override
+  void dispose() {
+    // Cancel all stream subscriptions
+    _justAudioStateSubscription?.cancel();
+    _mediaKitPlayingSubscription?.cancel();
+    _mediaKitErrorSubscription?.cancel();
+    _audioPlayersStateSubscription?.cancel();
+    super.dispose();
+  }
+
   void _setupJustAudioListener() {
     final player = ref.read(justAudioPlayerProvider);
-    player.processingStateStream.listen((state) {
+    _justAudioStateSubscription = player.processingStateStream.listen((state) {
       ref.read(justAudioProcessingStateProvider.notifier).state = state;
 
       if (state == ProcessingState.idle) {
-        // justAudioStartTime = DateTime.now();
         ref.read(justAudioLoadingTimeProvider.notifier).state = 'Loading...';
       } else if (state == ProcessingState.ready && justAudioStartTime != null) {
         final duration = DateTime.now().difference(justAudioStartTime!);
@@ -48,13 +61,9 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
 
   void _setupMediaKitListener() {
     final player = ref.read(mediaKitPlayerProvider);
-
-    // Create streams for each state we want to track
-    // final bufferingStream = player.stream.buffering;
-    // final playingStream = player.stream.playing;
     final errorStream = player.stream.error;
 
-    player.stream.playing.listen((isPlaying) {
+    _mediaKitPlayingSubscription = player.stream.playing.listen((isPlaying) {
       print('[log] MediaKit isPlaying: $isPlaying');
       if (isPlaying) {
         final duration = DateTime.now().difference(mediaKitStartTime!);
@@ -62,26 +71,8 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
             'Loaded in ${duration.inMilliseconds}ms';
       }
     });
-    // Combine buffering and playing states
-    // Rx.combineLatest2(
-    //   bufferingStream,
-    //   playingStream,
-    //   (bool isBuffering, bool isPlaying) => _MediaKitState(
-    //     isBuffering: isBuffering,
-    //     isPlaying: isPlaying,
-    //   ),
-    // ).listen((state) {
-    //   print(
-    //       '[log] MediaKit State: buffering=${state.isBuffering}, playing=${state.isPlaying}');
 
-    //   if (state.isBuffering) {
-    //     // mediaKitStartTime = DateTime.now();
-    //     ref.read(mediaKitLoadingTimeProvider.notifier).state = 'Loading...';
-    //   } else if (state.isPlaying && mediaKitStartTime != null) {}
-    // });
-
-    // Handle errors separately
-    errorStream.listen((error) {
+    _mediaKitErrorSubscription = errorStream.listen((error) {
       if (error.isNotEmpty) {
         print('[log] MediaKit Error: $error');
         ref.read(mediaKitLoadingTimeProvider.notifier).state = 'Error: $error';
@@ -92,7 +83,8 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
   void _setupAudioPlayersListener() {
     final player = ref.read(audioPlayersProvider);
 
-    player.onPlayerStateChanged.listen((state) {
+    _audioPlayersStateSubscription =
+        player.onPlayerStateChanged.listen((state) {
       if (state == audio_players.PlayerState.playing &&
           audioPlayersStartTime != null) {
         final duration = DateTime.now().difference(audioPlayersStartTime!);
