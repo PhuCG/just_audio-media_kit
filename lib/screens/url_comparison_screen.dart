@@ -21,7 +21,6 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
   @override
   Widget build(BuildContext context) {
     final mediaKitPlayer = ref.watch(mediaKitPlayerProvider);
-    final audioPlayersPlayer = ref.watch(audioPlayersProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -90,7 +89,9 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
                   builder: (context, ref, child) {
                     var loadingTime = '';
                     var endTime = '';
-                    audioPlayersPlayer.onPlayerStateChanged.listen((state) {
+                    // Listen to state changes from the first player as an example
+                    final firstPlayer = ref.watch(audioPlayersProviders[0]!);
+                    firstPlayer.onPlayerStateChanged.listen((state) {
                       if (state == audio_players.PlayerState.playing) {
                         loadingTime =
                             '${DateTime.now().difference(startTimeAudioPlayers).inMilliseconds}ms';
@@ -110,15 +111,16 @@ class _UrlComparisonScreenState extends ConsumerState<UrlComparisonScreen> {
                   },
                 ),
                 Wrap(
-                  children: sampleUrls.map(
-                    (url) {
+                  children: sampleUrls.asMap().entries.map(
+                    (entry) {
+                      final index = entry.key;
+                      // final url = entry.value;
+                      final player = ref.watch(audioPlayersProviders[index]!);
                       return IconButton(
                         icon: const Icon(Icons.play_arrow),
                         onPressed: () async {
                           startTimeAudioPlayers = DateTime.now();
-                          await audioPlayersPlayer.play(
-                            audio_players.UrlSource(url),
-                          );
+                          await player.resume();
                         },
                       );
                     },

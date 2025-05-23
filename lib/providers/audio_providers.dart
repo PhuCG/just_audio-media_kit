@@ -20,13 +20,21 @@ final mediaKitPlayerProvider = Provider<Player>((ref) {
   ref.onDispose(() {
     player.dispose();
   });
-  player.setVolume(150);
+  player.setVolume(100);
   return player;
 });
 
-// AudioPlayers Provider
-final audioPlayersProvider = Provider<audio_players.AudioPlayer>((ref) {
-  final player = audio_players.AudioPlayer();
-
-  return player;
-});
+// Create a provider for each URL
+final audioPlayersProviders = {
+  for (var i = 0; i < sampleUrls.length; i++)
+    i: Provider<audio_players.AudioPlayer>((ref) {
+      final player = audio_players.AudioPlayer();
+      // Preload the source when provider is created
+      player.setSource(audio_players.UrlSource(sampleUrls[i]));
+      player.setReleaseMode(audio_players.ReleaseMode.stop);
+      ref.onDispose(() {
+        player.dispose();
+      });
+      return player;
+    })
+};
