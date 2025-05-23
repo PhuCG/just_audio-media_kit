@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:audioplayers/audioplayers.dart' as audio_players;
-import '../providers/audio_providers.dart';
 
 class SourceComparisonScreen extends ConsumerWidget {
   const SourceComparisonScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mediaKitPlayer = ref.watch(mediaKitPlayerProvider);
-    final audioPlayersPlayer = ref.watch(audioPlayersProvider);
+    // final mediaKitPlayer = ref.watch(mediaKitPlayerProvider);
+    // final audioPlayersPlayer = ref.watch(audioPlayersProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Source Comparison'),
       ),
-      body: Column(
+      body: const Column(
         children: [
           // // MediaKit Player
           // Card(
