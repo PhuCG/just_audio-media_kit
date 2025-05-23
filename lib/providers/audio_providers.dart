@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio/just_audio.dart' hide PlayerState;
 import 'package:media_kit/media_kit.dart';
 import 'package:audioplayers/audioplayers.dart' as audio_players;
 
@@ -14,55 +13,48 @@ final sampleUrls = [
   "https://storage-dev.ahaspeak.app/quizzes/vocab/aoede/XuqiigA9iPDJP5bfugtQ.mp3"
 ];
 
-// Just Audio Provider
-final justAudioPlayerProvider = Provider<AudioPlayer>((ref) {
-  final player = AudioPlayer();
-  ref.onDispose(() {
-    player.dispose();
-  });
-  return player;
-});
-
 // Media Kit Provider
 final mediaKitPlayerProvider = Provider<Player>((ref) {
   final player = Player();
   ref.onDispose(() {
     player.dispose();
   });
+  player.setVolume(150);
   return player;
 });
-
-// Provider for current URL index
-final currentUrlIndexProvider = StateProvider<int>((ref) => 0);
-
-// Provider for current audio source
-final currentAudioSourceProvider = StateProvider<AudioSource?>((ref) => null);
-
-// Provider for Just Audio loading time
-final justAudioLoadingTimeProvider =
-    StateProvider<String>((ref) => 'Not started');
-
-// Provider for Media Kit loading time
-final mediaKitLoadingTimeProvider =
-    StateProvider<String>((ref) => 'Not started');
-
-// Provider for Just Audio processing state
-final justAudioProcessingStateProvider =
-    StateProvider<ProcessingState?>((ref) => null);
 
 // Provider for Media Kit processing state
 final mediaKitProcessingStateProvider =
     StateProvider<PlayerState?>((ref) => null);
 
-// Provider for AudioPlayers loading time
-final audioPlayersLoadingTimeProvider =
-    StateProvider<String>((ref) => 'Not started');
-
 // AudioPlayers Provider
 final audioPlayersProvider = Provider<audio_players.AudioPlayer>((ref) {
   final player = audio_players.AudioPlayer();
+
+  // Preload all audio sources
+  Future<void> preloadAudio(String url) async {
+    try {
+      await player.setSource(audio_players.UrlSource(url));
+      // Reset the player after preloading
+      await player.stop();
+    } catch (e) {
+      print('Error preloading audio: $e');
+    }
+  }
+
+  // Preload all URLs
+  for (final url in sampleUrls) {
+    preloadAudio(url);
+  }
+
   ref.onDispose(() {
     player.dispose();
   });
+
   return player;
+});
+
+// Provider for AudioCache
+final audioCacheProvider = Provider<audio_players.AudioCache>((ref) {
+  return audio_players.AudioCache();
 });
